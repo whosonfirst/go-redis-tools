@@ -28,10 +28,16 @@ func main() {
 
 	defer redis_client.Close()
 
+	_, err := redis_client.Ping().Result()
+
+	if err != nil {
+		log.Fatal("Failed to ping Redis server ", err)
+	}
+
 	pubsub_client := redis_client.PubSub()
 	defer pubsub_client.Close()
 
-	err := pubsub_client.Subscribe(*redis_channel)
+	err = pubsub_client.Subscribe(*redis_channel)
 
 	if err != nil {
 		msg := fmt.Sprintf("Failed to subscribe to channel %s, because %s", *redis_channel, err)
