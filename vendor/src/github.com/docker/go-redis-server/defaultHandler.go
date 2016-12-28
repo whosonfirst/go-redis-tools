@@ -322,13 +322,16 @@ func (h *DefaultHandler) Publish(key string, value []byte) (int, error) {
 	if h.Database == nil || h.sub == nil {
 		return 0, nil
 	}
-	//	Debugf("Publishing %s on %s\n", value, key)
+	Debugf("Publishing %s on %s\n", value, key)
 	v, exists := h.sub[key]
 	if !exists {
 		return 0, nil
 	}
 	i := 0
+
 	for _, c := range v {
+
+		// fmt.Printf("C is %s\n", c.Channel)
 		select {
 		case c.Channel <- []interface{}{
 			"message",
@@ -339,6 +342,7 @@ func (h *DefaultHandler) Publish(key string, value []byte) (int, error) {
 		default:
 		}
 	}
+
 	return i, nil
 }
 

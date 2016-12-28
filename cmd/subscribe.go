@@ -42,6 +42,8 @@ func main() {
 
 		i, _ := pubsub_client.Receive()
 
+		log.Println("RECEIVE", i)
+
 		if msg, _ := i.(*redis.Message); msg != nil {
 			log.Println(msg.Payload)
 		}

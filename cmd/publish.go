@@ -11,15 +11,8 @@ import (
 	"strings"
 )
 
-type MyHandler struct {
+type LocalHandler struct {
 	server.DefaultHandler
-}
-
-func (h *MyHandler) Publish(key string, value []byte) (int, error) {
-
-	log.Printf("key: %s value: %s\n", key, value)
-
-	return h.DefaultHandler.Publish(key, value)
 }
 
 func main() {
@@ -39,7 +32,7 @@ func main() {
 
 	if *redis_server {
 
-		handler := &MyHandler{}
+		handler := &LocalHandler{}
 
 		cfg := server.DefaultConfig()
 		cfg.Host(*redis_host)
@@ -52,7 +45,14 @@ func main() {
 			log.Fatal("Failed to create daemon", err)
 		}
 
-		go daemon.ListenAndServe()
+		go func() {
+
+			err := daemon.ListenAndServe()
+
+			if err != nil {
+				log.Fatal(err)
+			}
+		}()
 	}
 
 	redis_client := redis.NewTCPClient(&redis.Options{
@@ -68,7 +68,11 @@ func main() {
 		scanner := bufio.NewScanner(os.Stdin)
 
 		for scanner.Scan() {
-			redis_client.Publish(*redis_channel, scanner.Text())
+			msg := scanner.Text()
+
+			log.Println("SEND", msg)
+			i := redis_client.Publish(*redis_channel, msg)
+			log.Println("RECEIVE", i)
 		}
 
 	} else {
