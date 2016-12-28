@@ -44,6 +44,8 @@ func main() {
 		log.Fatal(msg)
 	}
 
+	defer pubsub_client.Unsubscribe(*redis_channel)
+
 	for {
 
 		i, _ := pubsub_client.Receive()
