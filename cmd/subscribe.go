@@ -12,7 +12,7 @@ func main() {
 
 	var redis_host = flag.String("redis-host", "localhost", "Redis host")
 	var redis_port = flag.Int("redis-port", 6379, "Redis port")
-	var redis_channel = flag.String("redis-channel", "", "Redis channel")
+	var redis_channel = flag.String("redis-channel", "", "Redis channel to subscribe to")
 
 	flag.Parse()
 
