@@ -4,20 +4,14 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	server "github.com/docker/go-redis-server"
 	redis "gopkg.in/redis.v1"
 	"log"
 	"os"
 	"strings"
 )
 
-type LocalHandler struct {
-	server.DefaultHandler
-}
-
 func main() {
 
-	var redis_server = flag.Bool("redis-server", false, "...")
 	var redis_host = flag.String("redis-host", "localhost", "Redis host")
 	var redis_port = flag.Int("redis-port", 6379, "Redis port")
 	var redis_channel = flag.String("redis-channel", "", "Redis channel to publish to")
@@ -29,6 +23,13 @@ func main() {
 	}
 
 	redis_endpoint := fmt.Sprintf("%s:%d", *redis_host, *redis_port)
+
+	/*
+	import "github.com/docker/go-redis-server"
+
+	type LocalHandler struct {
+	     server.DefaultHandler
+	}
 
 	if *redis_server {
 
@@ -54,7 +55,8 @@ func main() {
 			}
 		}()
 	}
-
+	*/
+	
 	redis_client := redis.NewTCPClient(&redis.Options{
 		Addr: redis_endpoint,
 	})
