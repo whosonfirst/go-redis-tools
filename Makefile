@@ -28,3 +28,4 @@ bin: 	self
 
 fmt:
 	go fmt cmd/*.go
+	go fmt pubsub/*.go
