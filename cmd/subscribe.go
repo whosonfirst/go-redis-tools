@@ -1,11 +1,11 @@
 package main
 
 import (
-       "flag"
-       "fmt"	
+	"flag"
+	"fmt"
 	"gopkg.in/redis.v1"
 	"log"
-	"os"		
+	"os"
 )
 
 func main() {
@@ -14,10 +14,12 @@ func main() {
 	var redis_port = flag.Int("redis-port", 6379, "Redis port")
 	var redis_channel = flag.String("redis-channel", "", "Redis channel")
 
+	flag.Parse()
+
 	if *redis_channel == "" {
 		log.Fatal("Missing channel")
 	}
-	
+
 	redis_endpoint := fmt.Sprintf("%s:%d", *redis_host, *redis_port)
 
 	redis_client := redis.NewTCPClient(&redis.Options{
@@ -32,9 +34,10 @@ func main() {
 	err := pubsub_client.Subscribe(*redis_channel)
 
 	if err != nil {
-		log.Fatal("Failed to subscribe to channel")
+		msg := fmt.Sprintf("Failed to subscribe to channel %s, because %s", *redis_channel, err)
+		log.Fatal(msg)
 	}
-	
+
 	for {
 
 		i, _ := pubsub_client.Receive()
