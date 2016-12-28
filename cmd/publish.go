@@ -15,6 +15,13 @@ type MyHandler struct {
 	server.DefaultHandler
 }
 
+func (h *MyHandler) Publish(key string, value []byte) (int, error) {
+
+	log.Printf("key: %s value: %s\n", key, value)
+
+	return h.DefaultHandler.Publish(key, value)
+}
+
 func main() {
 
 	var redis_server = flag.Bool("redis-server", false, "...")
@@ -32,7 +39,14 @@ func main() {
 
 	if *redis_server {
 
-		daemon, err := server.NewServer(server.DefaultConfig())
+		handler := &MyHandler{}
+
+		cfg := server.DefaultConfig()
+		cfg.Host(*redis_host)
+		cfg.Port(*redis_port)
+		cfg.Handler(handler)
+
+		daemon, err := server.NewServer(cfg)
 
 		if err != nil {
 			log.Fatal("Failed to create daemon", err)
