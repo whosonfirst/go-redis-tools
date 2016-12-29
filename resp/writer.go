@@ -59,7 +59,7 @@ func (w *RESPWriter) WriteBulkString(str string) error {
 	return w.Flush()
 }
 
-func (w *RESPWriter) WriteNullString() error {
+func (w *RESPWriter) WriteNullMessage() error {
 
 	w.Write(bulkStringPrefixSlice)
 	w.WriteString("-1")
@@ -70,8 +70,8 @@ func (w *RESPWriter) WriteNullString() error {
 
 func (w *RESPWriter) WriteSubscriptions(channels []string) error {
 
-     log.Println(channels)
-     
+	log.Println(channels)
+
 	for i, ch := range channels {
 
 		w.Write(arrayPrefixSlice)
@@ -95,6 +95,36 @@ func (w *RESPWriter) WriteSubscriptions(channels []string) error {
 		w.WriteString(strconv.Itoa(i + 1))
 		w.Write(lineEndingSlice)
 	}
+
+	return w.Flush()
+}
+
+func (w *RESPWriter) WritePublishMessage(channel string, msg string) error {
+
+	w.Write(arrayPrefixSlice)
+	w.WriteString("3")
+	w.Write(lineEndingSlice)
+
+	w.Write(arrayPrefixSlice)
+	w.WriteString("7")
+	w.Write(lineEndingSlice)
+
+	w.WriteString("message")
+	w.Write(lineEndingSlice)
+
+	w.Write(arrayPrefixSlice)
+	w.WriteString(strconv.Itoa(len(channel)))
+	w.Write(lineEndingSlice)
+
+	w.WriteString(channel)
+	w.Write(lineEndingSlice)
+
+	w.Write(arrayPrefixSlice)
+	w.WriteString(strconv.Itoa(len(msg)))
+	w.Write(lineEndingSlice)
+
+	w.WriteString(msg)
+	w.Write(lineEndingSlice)
 
 	return w.Flush()
 }

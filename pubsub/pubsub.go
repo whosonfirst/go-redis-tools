@@ -58,7 +58,7 @@ func (s *Server) ListenAndServe() error {
 			return err
 		}
 
-		log.Printf("hello %s", conn.RemoteAddr())
+		log.Printf("hello %s", conn.RemoteAddr().String())
 		go s.Receive(conn)
 	}
 
@@ -78,9 +78,10 @@ func (s *Server) Receive(conn net.Conn) {
 			break
 		}
 
-		body := strings.Split(string(raw), "\r\n")
+		str_raw := strings.Trim(string(raw), " ")
+		log.Printf("--\nRECEIVE\n%s\n--\n", str_raw)
 
-		log.Println(body)
+		body := strings.Split(str_raw, "\r\n")
 
 		if len(body) == 0 {
 			continue
@@ -95,6 +96,12 @@ func (s *Server) Receive(conn net.Conn) {
 			for _, ch := range body[3:] {
 
 				if strings.HasPrefix(ch, "$") {
+					continue
+				}
+
+				ch = strings.Trim(ch, " ")
+
+				if ch == "" {
 					continue
 				}
 
@@ -135,16 +142,29 @@ func (s *Server) Receive(conn net.Conn) {
 
 		} else if cmd == "PUBLISH" {
 
-			channel := body[1]
-			msg := strings.Join(body[2:], " ")
-			rsp, err := s.Publish(channel, []byte(msg))
+			channel := body[4]
+
+			msg := make([]string, 0)
+
+			for _, str := range body[5:] {
+
+				if strings.HasPrefix(str, "$") {
+					continue
+				}
+
+				msg = append(msg, str)
+			}
+
+			str_msg := strings.Join(msg, " ")
+
+			_, err := s.Publish(channel, str_msg)
 
 			if err != nil {
 				writer.WriteError(err)
 				break
 			}
 
-			writer.WriteArray(rsp)
+			writer.WriteNullMessage()
 
 		} else if cmd == "PING" {
 
@@ -244,7 +264,7 @@ func (s *Server) Unsubscribe(conn net.Conn, channels []string) ([]string, error)
 	return rsp, nil
 }
 
-func (s *Server) Publish(channel string, message []byte) ([]string, error) {
+func (s *Server) Publish(channel string, message string) ([]string, error) {
 
 	rsp := make([]string, 0)
 
@@ -262,14 +282,14 @@ func (s *Server) Publish(channel string, message []byte) ([]string, error) {
 			continue
 		}
 
-		go func(c net.Conn, m string) {
+		// log.Printf("PUBLISH MESSAGE TO %s ON %s\n", remote, channel)
 
-			rsp := []string{m}
+		go func(c net.Conn, ch string, m string) {
 
 			writer := resp.NewRESPWriter(c)
-			writer.WriteArray(rsp)
+			writer.WritePublishMessage(ch, message)
 
-		}(conn, string(message))
+		}(conn, channel, message)
 
 	}
 
