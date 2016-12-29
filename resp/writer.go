@@ -1,19 +1,23 @@
 package resp
 
+// https://godoc.org/github.com/fzzy/radix/redis/resp
+
 import (
 	"bufio"
 	_ "bytes"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 )
 
 var (
 	stringPrefixSlice     = []byte{'+'}
+	numberPrefixSlice     = []byte{':'}
 	arrayPrefixSlice      = []byte{'*'}
 	bulkStringPrefixSlice = []byte{'$'}
 	lineEndingSlice       = []byte{'\r', '\n'}
-	errorSlice            = []byte{'-', 'E', 'R', 'R'}
+	errorPrefixSlice      = []byte{'-', 'E', 'R', 'R'}
 )
 
 type RESPWriter struct {
@@ -21,16 +25,74 @@ type RESPWriter struct {
 }
 
 func NewRESPWriter(writer io.Writer) *RESPWriter {
+
+	writers := []io.Writer{
+		writer,
+		os.Stdout,
+	}
+
+	multi := io.MultiWriter(writers...)
+
 	return &RESPWriter{
-		Writer: bufio.NewWriter(writer),
+		Writer: bufio.NewWriter(multi),
 	}
 }
 
-func (w *RESPWriter) WriteSingle(foo string) error {
+func (w *RESPWriter) WriteSingle(str string) error {
 
 	w.Write(stringPrefixSlice)
-	w.WriteString(foo)
+	w.WriteString(str)
 	w.Write(lineEndingSlice)
+
+	return w.Flush()
+}
+
+func (w *RESPWriter) WriteBulkString(str string) error {
+
+	w.Write(bulkStringPrefixSlice)
+	w.WriteString(strconv.Itoa(len(str)))
+	w.Write(lineEndingSlice)
+	w.WriteString(str)
+	w.Write(lineEndingSlice)
+
+	return w.Flush()
+}
+
+func (w *RESPWriter) WriteNullString() error {
+
+	w.Write(bulkStringPrefixSlice)
+	w.WriteString("-1")
+	w.Write(lineEndingSlice)
+
+	return w.Flush()
+}
+
+func (w *RESPWriter) WriteSubscriptions(channels []string) error {
+
+	for i, ch := range channels {
+
+		w.Write(arrayPrefixSlice)
+		w.WriteString("3")
+		w.Write(lineEndingSlice)
+
+		w.WriteString("$9")
+		w.Write(lineEndingSlice)
+
+		w.WriteString("subscribe")
+		w.Write(lineEndingSlice)
+
+		w.Write(bulkStringPrefixSlice)
+		w.WriteString(strconv.Itoa(len(ch)))
+		w.Write(lineEndingSlice)
+
+		w.WriteString(ch)
+		w.Write(lineEndingSlice)
+
+		w.Write(numberPrefixSlice)
+		w.WriteString(strconv.Itoa(i + 1))
+		w.Write(lineEndingSlice)
+
+	}
 
 	return w.Flush()
 }
@@ -54,7 +116,7 @@ func (w *RESPWriter) WriteArray(args []string) error {
 
 func (w *RESPWriter) WriteError(err error) error {
 
-	w.Write(arrayPrefixSlice)
+	w.Write(errorPrefixSlice)
 	w.WriteString(fmt.Sprintf("%s", err))
 	w.Write(lineEndingSlice)
 

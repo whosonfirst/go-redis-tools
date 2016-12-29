@@ -2,6 +2,7 @@ package pubsub
 
 // https://redis.io/topics/protocol
 // https://redis.io/topics/pubsub
+// https://redis.io/topics/protocol#array-reply
 // https://www.redisgreen.net/blog/beginners-guide-to-redis-protocol/
 // https://www.redisgreen.net/blog/reading-and-writing-redis-protocol/
 
@@ -107,7 +108,7 @@ func (s *Server) Receive(conn net.Conn) {
 				break
 			}
 
-			writer.WriteArray(rsp)
+			writer.WriteSubscriptions(rsp)
 
 		} else if cmd == "UNSUBSCRIBE" {
 
@@ -176,8 +177,6 @@ func (s *Server) Subscribe(conn net.Conn, channels []string) ([]string, error) {
 		s.conns[remote] = conn
 	}
 
-	rsp = append(rsp, "subscribe")
-
 	for _, ch := range channels {
 
 		clients, ok := s.subs[ch]
@@ -190,7 +189,6 @@ func (s *Server) Subscribe(conn net.Conn, channels []string) ([]string, error) {
 		s.subs[ch][remote] = true
 
 		rsp = append(rsp, ch)
-		// rsp = append(rsp, len(rsp) - 1)
 	}
 
 	return rsp, nil
