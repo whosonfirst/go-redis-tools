@@ -28,13 +28,11 @@ func main() {
 
 	defer redis_client.Close()
 
-	p, err := redis_client.Ping().Result()
+	_, err := redis_client.Ping().Result()
 
 	if err != nil {
 		log.Fatal("Failed to ping Redis server ", err)
 	}
-
-	log.Println("PING", p)
 
 	pubsub_client := redis_client.PubSub()
 	defer pubsub_client.Close()

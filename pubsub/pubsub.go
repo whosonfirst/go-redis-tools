@@ -69,72 +69,99 @@ func (s *Server) Receive(conn net.Conn) {
 	reader := resp.NewRESPReader(conn)
 	writer := resp.NewRESPWriter(conn)
 
-	raw, err := reader.ReadObject()
-
-	if err != nil {
-		log.Println(err)
-		conn.Close()
-	}
-
-	body := strings.Split(string(raw), "\r\n")
-
-	if len(body) == 0 {
-		conn.Close()
-	}
-
-	cmd := body[2]
-
-	if cmd == "SUBSCRIBE" {
-
-		channels := body[1:]
-		rsp, err := s.Subscribe(conn, channels)
+	for {
+		raw, err := reader.ReadObject()
 
 		if err != nil {
-			writer.WriteError(err)
-			conn.Close()
+			log.Println(err)
+			break
 		}
 
-		writer.WriteArray(rsp)
+		body := strings.Split(string(raw), "\r\n")
 
-	} else if cmd == "UNSUBSCRIBE" {
+		log.Println(body)
 
-		channels := body[1:]
-		rsp, err := s.Unsubscribe(conn, channels)
-
-		if err != nil {
-			writer.WriteError(err)
-			conn.Close()
+		if len(body) == 0 {
+			continue
 		}
 
-		writer.WriteArray(rsp)
-		conn.Close()
+		cmd := body[2]
 
-	} else if cmd == "PUBLISH" {
+		if cmd == "SUBSCRIBE" {
 
-		channel := body[1]
-		msg := strings.Join(body[2:], " ")
-		rsp, err := s.Publish(channel, []byte(msg))
+			channels := make([]string, 0)
 
-		if err != nil {
-			writer.WriteError(err)
+			for _, ch := range body[3:] {
+
+				if strings.HasPrefix(ch, "$") {
+					continue
+				}
+
+				channels = append(channels, ch)
+			}
+
+			rsp, err := s.Subscribe(conn, channels)
+
+			if err != nil {
+				writer.WriteError(err)
+				break
+			}
+
+			writer.WriteArray(rsp)
+
+		} else if cmd == "UNSUBSCRIBE" {
+
+			channels := make([]string, 0)
+
+			for _, ch := range body[3:] {
+
+				if strings.HasPrefix(ch, "$") {
+					continue
+				}
+
+				channels = append(channels, ch)
+			}
+
+			rsp, err := s.Unsubscribe(conn, channels)
+
+			if err != nil {
+				writer.WriteError(err)
+				break
+			}
+
+			writer.WriteArray(rsp)
 			conn.Close()
+
+		} else if cmd == "PUBLISH" {
+
+			channel := body[1]
+			msg := strings.Join(body[2:], " ")
+			rsp, err := s.Publish(channel, []byte(msg))
+
+			if err != nil {
+				writer.WriteError(err)
+				break
+			}
+
+			writer.WriteArray(rsp)
+
+		} else if cmd == "PING" {
+
+			writer.WriteSingle("PONG")
+
+		} else {
+
+			msg := fmt.Sprintf("unknown command '%s'", cmd)
+			err := errors.New(msg)
+
+			writer.WriteError(err)
+			break
 		}
 
-		writer.WriteArray(rsp)
-
-	} else if cmd == "PING" {
-
-		writer.WriteSingle("PONG")
-		conn.Close()
-
-	} else {
-
-		msg := fmt.Sprintf("unknown command '%s'", cmd)
-		err := errors.New(msg)
-
-		writer.WriteError(err)
-		conn.Close()
 	}
+
+	conn.Close()
+
 }
 
 func (s *Server) Subscribe(conn net.Conn, channels []string) ([]string, error) {
@@ -149,6 +176,8 @@ func (s *Server) Subscribe(conn net.Conn, channels []string) ([]string, error) {
 		s.conns[remote] = conn
 	}
 
+	rsp = append(rsp, "subscribe")
+
 	for _, ch := range channels {
 
 		clients, ok := s.subs[ch]
@@ -159,6 +188,9 @@ func (s *Server) Subscribe(conn net.Conn, channels []string) ([]string, error) {
 		}
 
 		s.subs[ch][remote] = true
+
+		rsp = append(rsp, ch)
+		// rsp = append(rsp, len(rsp) - 1)
 	}
 
 	return rsp, nil
