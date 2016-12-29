@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	stringPrefixSlice     = []byte{'+'}
 	arrayPrefixSlice      = []byte{'*'}
 	bulkStringPrefixSlice = []byte{'$'}
 	lineEndingSlice       = []byte{'\r', '\n'}
@@ -25,7 +26,16 @@ func NewRESPWriter(writer io.Writer) *RESPWriter {
 	}
 }
 
-func (w *RESPWriter) WriteResponse(args []string) error {
+func (w *RESPWriter) WriteSingle(foo string) error {
+
+	w.Write(stringPrefixSlice)
+	w.WriteString(foo)
+	w.Write(lineEndingSlice)
+
+	return w.Flush()
+}
+
+func (w *RESPWriter) WriteArray(args []string) error {
 
 	w.Write(arrayPrefixSlice)
 	w.WriteString(strconv.Itoa(len(args)))

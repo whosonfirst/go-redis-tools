@@ -28,11 +28,13 @@ func main() {
 
 	defer redis_client.Close()
 
-	_, err := redis_client.Ping().Result()
+	p, err := redis_client.Ping().Result()
 
 	if err != nil {
 		log.Fatal("Failed to ping Redis server ", err)
 	}
+
+	log.Println("PING", p)
 
 	pubsub_client := redis_client.PubSub()
 	defer pubsub_client.Close()
@@ -49,8 +51,6 @@ func main() {
 	for {
 
 		i, _ := pubsub_client.Receive()
-
-		log.Println("RECEIVE", i)
 
 		if msg, _ := i.(*redis.Message); msg != nil {
 			log.Println(msg.Payload)

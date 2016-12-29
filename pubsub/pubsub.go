@@ -94,7 +94,7 @@ func (s *Server) Receive(conn net.Conn) {
 			conn.Close()
 		}
 
-		writer.WriteResponse(rsp)
+		writer.WriteArray(rsp)
 
 	} else if cmd == "UNSUBSCRIBE" {
 
@@ -106,7 +106,7 @@ func (s *Server) Receive(conn net.Conn) {
 			conn.Close()
 		}
 
-		writer.WriteResponse(rsp)
+		writer.WriteArray(rsp)
 		conn.Close()
 
 	} else if cmd == "PUBLISH" {
@@ -120,12 +120,11 @@ func (s *Server) Receive(conn net.Conn) {
 			conn.Close()
 		}
 
-		writer.WriteResponse(rsp)
+		writer.WriteArray(rsp)
 
 	} else if cmd == "PING" {
 
-		rsp := []string{"PONG"}
-		writer.WriteResponse(rsp)
+		writer.WriteSingle("PONG")
 		conn.Close()
 
 	} else {
@@ -238,7 +237,7 @@ func (s *Server) Publish(channel string, message []byte) ([]string, error) {
 			rsp := []string{m}
 
 			writer := resp.NewRESPWriter(c)
-			writer.WriteResponse(rsp)
+			writer.WriteArray(rsp)
 
 		}(conn, string(message))
 
