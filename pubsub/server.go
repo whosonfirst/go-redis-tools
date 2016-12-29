@@ -115,7 +115,7 @@ func (s *Server) Receive(conn net.Conn) {
 				break
 			}
 
-			writer.WriteSubscriptions(rsp)
+			writer.WriteSubscribeMessage(rsp)
 
 		} else if cmd == "UNSUBSCRIBE" {
 
@@ -137,7 +137,7 @@ func (s *Server) Receive(conn net.Conn) {
 				break
 			}
 
-			writer.WriteArray(rsp)
+			writer.WriteUnsubscribeMessage(rsp)
 			conn.Close()
 
 		} else if cmd == "PUBLISH" {
@@ -168,7 +168,7 @@ func (s *Server) Receive(conn net.Conn) {
 
 		} else if cmd == "PING" {
 
-			writer.WriteSingle("PONG")
+			writer.WriteStringMessage("PONG")
 
 		} else {
 

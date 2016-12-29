@@ -4,10 +4,9 @@ package resp
 
 import (
 	"bufio"
-	_ "bytes"
 	"fmt"
 	"io"
-	"log"
+	_ "log"
 	"os"
 	"strconv"
 )
@@ -39,20 +38,9 @@ func NewRESPWriter(writer io.Writer) *RESPWriter {
 	}
 }
 
-func (w *RESPWriter) WriteSingle(str string) error {
+func (w *RESPWriter) WriteStringMessage(str string) error {
 
 	w.Write(stringPrefixSlice)
-	w.WriteString(str)
-	w.Write(lineEndingSlice)
-
-	return w.Flush()
-}
-
-func (w *RESPWriter) WriteBulkString(str string) error {
-
-	w.Write(bulkStringPrefixSlice)
-	w.WriteString(strconv.Itoa(len(str)))
-	w.Write(lineEndingSlice)
 	w.WriteString(str)
 	w.Write(lineEndingSlice)
 
@@ -68,9 +56,7 @@ func (w *RESPWriter) WriteNullMessage() error {
 	return w.Flush()
 }
 
-func (w *RESPWriter) WriteSubscriptions(channels []string) error {
-
-	log.Println(channels)
+func (w *RESPWriter) WriteSubscribeMessage(channels []string) error {
 
 	for i, ch := range channels {
 
@@ -99,27 +85,32 @@ func (w *RESPWriter) WriteSubscriptions(channels []string) error {
 	return w.Flush()
 }
 
+func (w *RESPWriter) WriteUnsubscribeMessage(channels []string) error {
+
+     return w.Flush()
+}
+
 func (w *RESPWriter) WritePublishMessage(channel string, msg string) error {
 
 	w.Write(arrayPrefixSlice)
 	w.WriteString("3")
 	w.Write(lineEndingSlice)
 
-	w.Write(arrayPrefixSlice)
+	w.Write(bulkStringPrefixSlice)
 	w.WriteString("7")
 	w.Write(lineEndingSlice)
 
 	w.WriteString("message")
 	w.Write(lineEndingSlice)
 
-	w.Write(arrayPrefixSlice)
+	w.Write(bulkStringPrefixSlice)
 	w.WriteString(strconv.Itoa(len(channel)))
 	w.Write(lineEndingSlice)
 
 	w.WriteString(channel)
 	w.Write(lineEndingSlice)
 
-	w.Write(arrayPrefixSlice)
+	w.Write(bulkStringPrefixSlice)
 	w.WriteString(strconv.Itoa(len(msg)))
 	w.Write(lineEndingSlice)
 
