@@ -7,6 +7,7 @@ import (
 	_ "bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 )
@@ -69,6 +70,8 @@ func (w *RESPWriter) WriteNullString() error {
 
 func (w *RESPWriter) WriteSubscriptions(channels []string) error {
 
+     log.Println(channels)
+     
 	for i, ch := range channels {
 
 		w.Write(arrayPrefixSlice)
@@ -91,7 +94,6 @@ func (w *RESPWriter) WriteSubscriptions(channels []string) error {
 		w.Write(numberPrefixSlice)
 		w.WriteString(strconv.Itoa(i + 1))
 		w.Write(lineEndingSlice)
-
 	}
 
 	return w.Flush()

@@ -29,7 +29,7 @@ vendor-deps: deps
 bin: 	self
 	@GOPATH=$(GOPATH) go build -o bin/publish cmd/publish.go
 	@GOPATH=$(GOPATH) go build -o bin/subscribe cmd/subscribe.go
-	@GOPATH=$(GOPATH) go build -o bin/pubsub cmd/pubsub.go
+	@GOPATH=$(GOPATH) go build -o bin/pubsubd cmd/pubsubd.go
 
 fmt:
 	go fmt cmd/*.go
