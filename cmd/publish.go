@@ -4,7 +4,8 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	redis "gopkg.in/redis.v1"
+	"github.com/whosonfirst/go-redis-tools/pubsub"
+	"gopkg.in/redis.v1"
 	"log"
 	"os"
 	"strings"
@@ -15,6 +16,7 @@ func main() {
 	var redis_host = flag.String("redis-host", "localhost", "Redis host")
 	var redis_port = flag.Int("redis-port", 6379, "Redis port")
 	var redis_channel = flag.String("redis-channel", "", "Redis channel to publish to")
+	var pubsubd = flag.Bool("pubsubd", false, "...")
 
 	flag.Parse()
 
@@ -24,38 +26,23 @@ func main() {
 
 	redis_endpoint := fmt.Sprintf("%s:%d", *redis_host, *redis_port)
 
-	/*
-		import "github.com/docker/go-redis-server"
+	if *pubsubd {
 
-		type LocalHandler struct {
-		     server.DefaultHandler
+		server, err := pubsub.NewServer(*redis_host, *redis_port)
+
+		if err != nil {
+			log.Fatal(err)
 		}
 
-		if *redis_server {
+		go func() {
 
-			handler := &LocalHandler{}
-
-			cfg := server.DefaultConfig()
-			cfg.Host(*redis_host)
-			cfg.Port(*redis_port)
-			cfg.Handler(handler)
-
-			daemon, err := server.NewServer(cfg)
+			err := server.ListenAndServe()
 
 			if err != nil {
-				log.Fatal("Failed to create daemon ", err)
+				log.Fatal(err)
 			}
-
-			go func() {
-
-				err := daemon.ListenAndServe()
-
-				if err != nil {
-					log.Fatal(err)
-				}
-			}()
-		}
-	*/
+		}()
+	}
 
 	redis_client := redis.NewTCPClient(&redis.Options{
 		Addr: redis_endpoint,
@@ -77,10 +64,11 @@ func main() {
 
 		for scanner.Scan() {
 			msg := scanner.Text()
+			err := redis_client.Publish(*redis_channel, msg)
 
-			log.Println("SEND", msg)
-			i := redis_client.Publish(*redis_channel, msg)
-			log.Println("RECEIVE", i)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 	} else {

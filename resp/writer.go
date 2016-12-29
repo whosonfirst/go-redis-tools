@@ -87,7 +87,7 @@ func (w *RESPWriter) WriteSubscribeMessage(channels []string) error {
 
 func (w *RESPWriter) WriteUnsubscribeMessage(channels []string) error {
 
-     return w.Flush()
+	return w.Flush()
 }
 
 func (w *RESPWriter) WritePublishMessage(channel string, msg string) error {
