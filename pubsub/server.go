@@ -175,7 +175,7 @@ func (s *Server) receive(conn net.Conn) {
 
 			str_msg := strings.Join(msg, " ")
 
-			_, err := s.publish(channel, str_msg)
+			err := s.publish(channel, str_msg)
 
 			if err != nil {
 				writer.WriteErrorMessage(err)
@@ -300,9 +300,7 @@ func (s *Server) unsubscribe(conn net.Conn, channels []string) ([]string, error)
 	return rsp, nil
 }
 
-func (s *Server) publish(channel string, message string) ([]string, error) {
-
-	rsp := make([]string, 0)
+func (s *Server) publish(channel string, message string) error {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -310,7 +308,7 @@ func (s *Server) publish(channel string, message string) ([]string, error) {
 	clients, ok := s.channels[channel]
 
 	if !ok {
-		return rsp, nil
+		return nil
 	}
 
 	for client, _ := range clients {
@@ -330,7 +328,7 @@ func (s *Server) publish(channel string, message string) ([]string, error) {
 
 	}
 
-	return rsp, nil
+	return nil
 }
 
 func (s *Server) whoami(conn net.Conn) string {
