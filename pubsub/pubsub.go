@@ -2,44 +2,17 @@ package pubsub
 
 // https://redis.io/topics/protocol
 // https://redis.io/topics/pubsub
+// https://www.redisgreen.net/blog/beginners-guide-to-redis-protocol/
 // https://www.redisgreen.net/blog/reading-and-writing-redis-protocol/
 
 import (
-	"bufio"
-	_ "bytes"
 	"errors"
 	"fmt"
-	"io"
+	"github.com/whosonfirst/go-redis-tools/resp"
+	"log"
 	"net"
-	_ "strconv"
 	"strings"
 )
-
-var (
-	arrayPrefixSlice      = []byte{'*'}
-	bulkStringPrefixSlice = []byte{'$'}
-	lineEndingSlice       = []byte{'\r', '\n'}
-)
-
-type RESPWriter struct {
-	*bufio.Writer
-}
-
-func NewRESPWriter(writer io.Writer) *RESPWriter {
-	return &RESPWriter{
-		Writer: bufio.NewWriter(writer),
-	}
-}
-
-type RESPReader struct {
-	*bufio.Reader
-}
-
-func NewReader(reader io.Reader) *RESPReader {
-	return &RESPReader{
-		Reader: bufio.NewReaderSize(reader, 32*1024),
-	}
-}
 
 type Clients map[string]bool
 
@@ -84,6 +57,7 @@ func (s *Server) ListenAndServe() error {
 			return err
 		}
 
+		log.Printf("hello %s", conn.RemoteAddr())
 		go s.Receive(conn)
 	}
 
@@ -92,36 +66,81 @@ func (s *Server) ListenAndServe() error {
 
 func (s *Server) Receive(conn net.Conn) {
 
-	buf := make([]byte, 1024)
+	reader := resp.NewRESPReader(conn)
+	writer := resp.NewRESPWriter(conn)
 
-	_, err := conn.Read(buf)
+	raw, err := reader.ReadObject()
 
 	if err != nil {
+		log.Println(err)
 		conn.Close()
-		return
 	}
 
-	msg := string(buf)
+	body := strings.Split(string(raw), "\r\n")
 
-	if strings.HasPrefix(msg, "SUBSCRIBE") {
+	if len(body) == 0 {
+		conn.Close()
+	}
 
-		channels := make([]string, 0)
-		s.Subscribe(conn, channels)
-	} else if strings.HasPrefix(msg, "UNSUBSCRIBE") {
-		channels := make([]string, 0)
-		s.Unsubscribe(conn, channels)
+	cmd := body[2]
 
-	} else if strings.HasPrefix(msg, "PUBLISH") {
-		channel := ""
-		msg := ""
-		s.Publish(channel, []byte(msg))
+	if cmd == "SUBSCRIBE" {
+
+		channels := body[1:]
+		rsp, err := s.Subscribe(conn, channels)
+
+		if err != nil {
+			writer.WriteError(err)
+			conn.Close()
+		}
+
+		writer.WriteResponse(rsp)
+
+	} else if cmd == "UNSUBSCRIBE" {
+
+		channels := body[1:]
+		rsp, err := s.Unsubscribe(conn, channels)
+
+		if err != nil {
+			writer.WriteError(err)
+			conn.Close()
+		}
+
+		writer.WriteResponse(rsp)
+		conn.Close()
+
+	} else if cmd == "PUBLISH" {
+
+		channel := body[1]
+		msg := strings.Join(body[2:], " ")
+		rsp, err := s.Publish(channel, []byte(msg))
+
+		if err != nil {
+			writer.WriteError(err)
+			conn.Close()
+		}
+
+		writer.WriteResponse(rsp)
+
+	} else if cmd == "PING" {
+
+		rsp := []string{"PONG"}
+		writer.WriteResponse(rsp)
+		conn.Close()
+
 	} else {
 
+		msg := fmt.Sprintf("unknown command '%s'", cmd)
+		err := errors.New(msg)
+
+		writer.WriteError(err)
 		conn.Close()
 	}
 }
 
-func (s *Server) Subscribe(conn net.Conn, channels []string) error {
+func (s *Server) Subscribe(conn net.Conn, channels []string) ([]string, error) {
+
+	rsp := make([]string, 0)
 
 	remote := conn.RemoteAddr().String()
 
@@ -143,17 +162,21 @@ func (s *Server) Subscribe(conn net.Conn, channels []string) error {
 		s.subs[ch][remote] = true
 	}
 
-	return nil
+	return rsp, nil
 }
 
-func (s *Server) Unsubscribe(conn net.Conn, channels []string) error {
+func (s *Server) Unsubscribe(conn net.Conn, channels []string) ([]string, error) {
+
+	rsp := make([]string, 0)
 
 	remote := conn.RemoteAddr().String()
 
 	_, ok := s.conns[remote]
 
 	if !ok {
-		return errors.New("Can not find connection thingy for ...")
+		msg := fmt.Sprintf("Can not find connection thingy for %s", remote)
+		err := errors.New(msg)
+		return rsp, err
 	}
 
 	for _, ch := range channels {
@@ -186,20 +209,20 @@ func (s *Server) Unsubscribe(conn net.Conn, channels []string) error {
 	}
 
 	if count == 0 {
-
-		conn.Close()
 		delete(s.conns, remote)
 	}
 
-	return nil
+	return rsp, nil
 }
 
-func (s *Server) Publish(channel string, message []byte) error {
+func (s *Server) Publish(channel string, message []byte) ([]string, error) {
+
+	rsp := make([]string, 0)
 
 	sub, ok := s.subs[channel]
 
 	if !ok {
-		return nil
+		return rsp, nil
 	}
 
 	for remote, _ := range sub {
@@ -210,8 +233,16 @@ func (s *Server) Publish(channel string, message []byte) error {
 			continue
 		}
 
-		go conn.Write(message)
+		go func(c net.Conn, m string) {
+
+			rsp := []string{m}
+
+			writer := resp.NewRESPWriter(c)
+			writer.WriteResponse(rsp)
+
+		}(conn, string(message))
+
 	}
 
-	return nil
+	return rsp, nil
 }

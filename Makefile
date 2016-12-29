@@ -7,7 +7,9 @@ prep:
 self:   prep rmdeps
 	if test ! -d src; then mkdir src; fi
 	if test ! -d src/github.com/whosonfirst/go-redis-tools/pubsub; then mkdir -p src/github.com/whosonfirst/go-redis-tools/pubsub; fi
+	if test ! -d src/github.com/whosonfirst/go-redis-tools/resp; then mkdir -p src/github.com/whosonfirst/go-redis-tools/resp; fi
 	cp pubsub/*.go src/github.com/whosonfirst/go-redis-tools/pubsub/
+	cp resp/*.go src/github.com/whosonfirst/go-redis-tools/resp/
 	cp -r vendor/src/* src/
 
 rmdeps:
@@ -32,3 +34,4 @@ bin: 	self
 fmt:
 	go fmt cmd/*.go
 	go fmt pubsub/*.go
+	go fmt resp/*.go
