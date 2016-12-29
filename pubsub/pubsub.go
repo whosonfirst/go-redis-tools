@@ -6,11 +6,13 @@ package pubsub
 
 import (
 	"bufio"
-	"bytes"
+	_ "bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net"
-	"strconv"
+	_ "strconv"
+	"strings"
 )
 
 var (
@@ -39,25 +41,25 @@ func NewReader(reader io.Reader) *RESPReader {
 	}
 }
 
-type Conns map[string]net.Conn
-
 type Clients map[string]bool
 
 type Server struct {
-	host string
-	port int
-	subs map[string]Client
+	host  string
+	port  int
+	subs  map[string]Clients
+	conns map[string]net.Conn
 }
 
-func NewServer(host string, port string) (*Server, error) {
+func NewServer(host string, port int) (*Server, error) {
 
 	conns := make(map[string]net.Conn)
 	subs := make(map[string]Clients)
 
 	s := Server{
-		host: host,
-		port: port,
-		subs: subs,
+		host:  host,
+		port:  port,
+		subs:  subs,
+		conns: conns,
 	}
 
 	return &s, nil
@@ -79,7 +81,7 @@ func (s *Server) ListenAndServe() error {
 		conn, err := daemon.Accept()
 
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		go s.Receive(conn)
@@ -88,17 +90,40 @@ func (s *Server) ListenAndServe() error {
 	return nil
 }
 
-func (s *Server) Receive(conn net.Conn) error {
+func (s *Server) Receive(conn net.Conn) {
 
-}
+	buf := make([]byte, 1024)
 
-func (s *Server) Send() error {
+	_, err := conn.Read(buf)
 
+	if err != nil {
+		conn.Close()
+		return
+	}
+
+	msg := string(buf)
+
+	if strings.HasPrefix(msg, "SUBSCRIBE") {
+
+		channels := make([]string, 0)
+		s.Subscribe(conn, channels)
+	} else if strings.HasPrefix(msg, "UNSUBSCRIBE") {
+		channels := make([]string, 0)
+		s.Unsubscribe(conn, channels)
+
+	} else if strings.HasPrefix(msg, "PUBLISH") {
+		channel := ""
+		msg := ""
+		s.Publish(channel, []byte(msg))
+	} else {
+
+		conn.Close()
+	}
 }
 
 func (s *Server) Subscribe(conn net.Conn, channels []string) error {
 
-	remote := conn.RemoteAddr()
+	remote := conn.RemoteAddr().String()
 
 	_, ok := s.conns[remote]
 
@@ -123,17 +148,17 @@ func (s *Server) Subscribe(conn net.Conn, channels []string) error {
 
 func (s *Server) Unsubscribe(conn net.Conn, channels []string) error {
 
-	remote := conn.RemoteAddr()
+	remote := conn.RemoteAddr().String()
 
 	_, ok := s.conns[remote]
 
 	if !ok {
-		return errors.New("Can not find connection thingy for %s", remote)
+		return errors.New("Can not find connection thingy for ...")
 	}
 
 	for _, ch := range channels {
 
-		clients, ok := s.subs[ch]
+		_, ok := s.subs[ch]
 
 		if !ok {
 			continue
@@ -145,14 +170,14 @@ func (s *Server) Unsubscribe(conn net.Conn, channels []string) error {
 			continue
 		}
 
-		delete(s.subs[ch][remote])
+		delete(s.subs[ch], remote)
 	}
 
 	count := 0
 
 	for _, ch := range channels {
 
-		for addr, _ := range ch {
+		for addr, _ := range s.subs[ch] {
 
 			if addr == remote {
 				count += 1
@@ -174,7 +199,7 @@ func (s *Server) Publish(channel string, message []byte) error {
 	sub, ok := s.subs[channel]
 
 	if !ok {
-		return nils
+		return nil
 	}
 
 	for remote, _ := range sub {

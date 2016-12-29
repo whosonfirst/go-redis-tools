@@ -6,6 +6,8 @@ prep:
 
 self:   prep rmdeps
 	if test ! -d src; then mkdir src; fi
+	if test ! -d src/github.com/whosonfirst/go-redis-tools/pubsub; then mkdir -p src/github.com/whosonfirst/go-redis-tools/pubsub; fi
+	cp pubsub/*.go src/github.com/whosonfirst/go-redis-tools/pubsub/
 	cp -r vendor/src/* src/
 
 rmdeps:
@@ -25,6 +27,7 @@ vendor-deps: deps
 bin: 	self
 	@GOPATH=$(GOPATH) go build -o bin/publish cmd/publish.go
 	@GOPATH=$(GOPATH) go build -o bin/subscribe cmd/subscribe.go
+	@GOPATH=$(GOPATH) go build -o bin/pubsub cmd/pubsub.go
 
 fmt:
 	go fmt cmd/*.go
