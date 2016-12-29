@@ -10,9 +10,9 @@ import (
 
 func main() {
 
-	var redis_host = flag.String("redis-host", "localhost", "Redis host")
-	var redis_port = flag.Int("redis-port", 6379, "Redis port")
-	var redis_channel = flag.String("redis-channel", "", "Redis channel to subscribe to")
+	var redis_host = flag.String("redis-host", "localhost", "The Redis host to connect to.")
+	var redis_port = flag.Int("redis-port", 6379, "The Redis port to connect to.")
+	var redis_channel = flag.String("redis-channel", "", "The Redis channel to publish to.")
 
 	flag.Parse()
 
@@ -44,8 +44,6 @@ func main() {
 		log.Fatal(msg)
 	}
 
-	defer pubsub_client.Unsubscribe(*redis_channel)
-
 	for {
 
 		i, _ := pubsub_client.Receive()
@@ -53,6 +51,14 @@ func main() {
 		if msg, _ := i.(*redis.Message); msg != nil {
 			log.Println(msg.Payload)
 		}
+	}
+
+	// please for to add signal handlers here...
+
+	err = pubsub_client.Unsubscribe(*redis_channel)
+
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	os.Exit(0)

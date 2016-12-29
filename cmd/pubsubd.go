@@ -9,12 +9,12 @@ import (
 
 func main() {
 
-	var redis_host = flag.String("redis-host", "localhost", "Redis host")
-	var redis_port = flag.Int("redis-port", 6379, "Redis port")
+	var host = flag.String("host", "localhost", "The hostname to listen on.")
+	var port = flag.Int("port", 6379, "The port number to listen on.")
 
 	flag.Parse()
 
-	server, err := pubsub.NewServer(*redis_host, *redis_port)
+	server, err := pubsub.NewServer(*host, *port)
 
 	if err != nil {
 		log.Fatal(err)

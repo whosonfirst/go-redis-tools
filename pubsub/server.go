@@ -2,38 +2,48 @@ package pubsub
 
 // https://redis.io/topics/protocol
 // https://redis.io/topics/pubsub
-// https://redis.io/topics/protocol#array-reply
-// https://www.redisgreen.net/blog/beginners-guide-to-redis-protocol/
-// https://www.redisgreen.net/blog/reading-and-writing-redis-protocol/
 
 import (
 	"errors"
 	"fmt"
 	"github.com/whosonfirst/go-redis-tools/resp"
+	"io"
 	"log"
 	"net"
 	"strings"
+	"sync"
 )
 
-type Clients map[string]bool
+// s.channels[ channel ][ remote_addr] = bool
+type Channels map[string]bool
+
+// s.subscriptions[ remote_addr ][ channel ] = bool
+type Subscriptions map[string]bool
 
 type Server struct {
-	host  string
-	port  int
-	subs  map[string]Clients
-	conns map[string]net.Conn
+	host          string
+	port          int
+	channels      map[string]Channels
+	subscriptions map[string]Subscriptions
+	conns         map[string]net.Conn
+	mu            *sync.Mutex
 }
 
 func NewServer(host string, port int) (*Server, error) {
 
 	conns := make(map[string]net.Conn)
-	subs := make(map[string]Clients)
+	channels := make(map[string]Channels)
+	subs := make(map[string]Subscriptions)
+
+	mu := new(sync.Mutex)
 
 	s := Server{
-		host:  host,
-		port:  port,
-		subs:  subs,
-		conns: conns,
+		host:          host,
+		port:          port,
+		conns:         conns,
+		channels:      channels,
+		subscriptions: subs,
+		mu:            mu,
 	}
 
 	return &s, nil
@@ -58,14 +68,16 @@ func (s *Server) ListenAndServe() error {
 			return err
 		}
 
-		log.Printf("hello %s", conn.RemoteAddr().String())
-		go s.Receive(conn)
+		go s.receive(conn)
 	}
 
 	return nil
 }
 
-func (s *Server) Receive(conn net.Conn) {
+func (s *Server) receive(conn net.Conn) {
+
+	client := s.whoami(conn)
+	log.Printf("%s CONNECT", client)
 
 	reader := resp.NewRESPReader(conn)
 	writer := resp.NewRESPWriter(conn)
@@ -74,12 +86,16 @@ func (s *Server) Receive(conn net.Conn) {
 		raw, err := reader.ReadObject()
 
 		if err != nil {
-			log.Println(err)
+
+			if err != io.EOF {
+				// log.Printf("Failed to read from client (%s) because %s (%T)", client, err, err)
+			}
+
 			break
 		}
 
 		str_raw := strings.Trim(string(raw), " ")
-		log.Printf("--\nRECEIVE\n%s\n--\n", str_raw)
+		// log.Printf("RECEIVE\n--\n%s\n--\n", str_raw)
 
 		body := strings.Split(str_raw, "\r\n")
 
@@ -88,6 +104,8 @@ func (s *Server) Receive(conn net.Conn) {
 		}
 
 		cmd := body[2]
+
+		log.Printf("%s %s", client, cmd)
 
 		if cmd == "SUBSCRIBE" {
 
@@ -108,10 +126,10 @@ func (s *Server) Receive(conn net.Conn) {
 				channels = append(channels, ch)
 			}
 
-			rsp, err := s.Subscribe(conn, channels)
+			rsp, err := s.subscribe(conn, channels)
 
 			if err != nil {
-				writer.WriteError(err)
+				writer.WriteErrorMessage(err)
 				break
 			}
 
@@ -130,10 +148,10 @@ func (s *Server) Receive(conn net.Conn) {
 				channels = append(channels, ch)
 			}
 
-			rsp, err := s.Unsubscribe(conn, channels)
+			rsp, err := s.unsubscribe(conn, channels)
 
 			if err != nil {
-				writer.WriteError(err)
+				writer.WriteErrorMessage(err)
 				break
 			}
 
@@ -157,10 +175,10 @@ func (s *Server) Receive(conn net.Conn) {
 
 			str_msg := strings.Join(msg, " ")
 
-			_, err := s.Publish(channel, str_msg)
+			_, err := s.publish(channel, str_msg)
 
 			if err != nil {
-				writer.WriteError(err)
+				writer.WriteErrorMessage(err)
 				break
 			}
 
@@ -175,7 +193,7 @@ func (s *Server) Receive(conn net.Conn) {
 			msg := fmt.Sprintf("unknown command '%s'", cmd)
 			err := errors.New(msg)
 
-			writer.WriteError(err)
+			writer.WriteErrorMessage(err)
 			break
 		}
 
@@ -183,106 +201,125 @@ func (s *Server) Receive(conn net.Conn) {
 
 	conn.Close()
 
+	go s.prune_client(client)
 }
 
-func (s *Server) Subscribe(conn net.Conn, channels []string) ([]string, error) {
+func (s *Server) subscribe(conn net.Conn, channels []string) ([]string, error) {
 
+	client := s.whoami(conn)
 	rsp := make([]string, 0)
 
-	remote := conn.RemoteAddr().String()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	_, ok := s.conns[remote]
+	_, ok := s.conns[client]
 
 	if !ok {
-		s.conns[remote] = conn
+		s.conns[client] = conn
 	}
 
 	for _, ch := range channels {
 
-		clients, ok := s.subs[ch]
+		subs, ok := s.subscriptions[client]
 
 		if !ok {
-			clients = make(map[string]bool)
-			s.subs[ch] = clients
+			subs = make(map[string]bool)
+			s.subscriptions[ch] = subs
 		}
 
-		s.subs[ch][remote] = true
+		s.subscriptions[ch][client] = true
 
+		chs, ok := s.channels[ch]
+
+		if !ok {
+
+			chs = make(map[string]bool)
+			s.channels[ch] = chs
+		}
+
+		s.channels[ch][client] = true
 		rsp = append(rsp, ch)
 	}
 
 	return rsp, nil
 }
 
-func (s *Server) Unsubscribe(conn net.Conn, channels []string) ([]string, error) {
+func (s *Server) unsubscribe(conn net.Conn, channels []string) ([]string, error) {
 
+	client := s.whoami(conn)
 	rsp := make([]string, 0)
 
-	remote := conn.RemoteAddr().String()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	_, ok := s.conns[remote]
+	_, ok := s.conns[client]
 
 	if !ok {
-		msg := fmt.Sprintf("Can not find connection thingy for %s", remote)
+		msg := fmt.Sprintf("Can not find connection thingy for %s", client)
 		err := errors.New(msg)
 		return rsp, err
 	}
 
 	for _, ch := range channels {
 
-		_, ok := s.subs[ch]
+		var ok bool
+
+		_, ok = s.subscriptions[client]
 
 		if !ok {
 			continue
 		}
 
-		_, ok = s.subs[ch][remote]
+		_, ok = s.subscriptions[client][ch]
 
 		if !ok {
 			continue
 		}
 
-		delete(s.subs[ch], remote)
-	}
+		delete(s.subscriptions[client], ch)
 
-	count := 0
+		_, ok = s.channels[ch]
 
-	for _, ch := range channels {
-
-		for addr, _ := range s.subs[ch] {
-
-			if addr == remote {
-				count += 1
-			}
+		if !ok {
+			continue
 		}
-	}
 
-	if count == 0 {
-		delete(s.conns, remote)
+		_, ok = s.channels[ch][client]
+
+		if !ok {
+			continue
+		}
+
+		delete(s.channels[ch], client)
+
+		if len(s.channels[ch]) == 0 {
+			delete(s.channels, ch)
+		}
 	}
 
 	return rsp, nil
 }
 
-func (s *Server) Publish(channel string, message string) ([]string, error) {
+func (s *Server) publish(channel string, message string) ([]string, error) {
 
 	rsp := make([]string, 0)
 
-	sub, ok := s.subs[channel]
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	clients, ok := s.channels[channel]
 
 	if !ok {
 		return rsp, nil
 	}
 
-	for remote, _ := range sub {
+	for client, _ := range clients {
 
-		conn, ok := s.conns[remote]
+		conn, ok := s.conns[client]
 
 		if !ok {
 			continue
 		}
-
-		// log.Printf("PUBLISH MESSAGE TO %s ON %s\n", remote, channel)
 
 		go func(c net.Conn, ch string, m string) {
 
@@ -294,4 +331,43 @@ func (s *Server) Publish(channel string, message string) ([]string, error) {
 	}
 
 	return rsp, nil
+}
+
+func (s *Server) whoami(conn net.Conn) string {
+
+	return conn.RemoteAddr().String()
+}
+
+func (s *Server) prune_client(client string) {
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var ok bool
+
+	_, ok = s.conns[client]
+
+	if ok {
+		delete(s.conns, client)
+	}
+
+	_, ok = s.subscriptions[client]
+
+	if ok {
+		delete(s.subscriptions, client)
+	}
+
+	for ch, _ := range s.channels {
+
+		_, ok = s.channels[ch][client]
+
+		if ok {
+			delete(s.channels[ch], client)
+		}
+
+		if len(s.channels[ch]) == 0 {
+			delete(s.channels, ch)
+		}
+	}
+
 }

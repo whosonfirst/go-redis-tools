@@ -1,5 +1,14 @@
 package resp
 
+// Adapted from:
+// https://www.redisgreen.net/blog/beginners-guide-to-redis-protocol/
+// https://www.redisgreen.net/blog/reading-and-writing-redis-protocol/
+
+// Maybe use this:
+// https://godoc.org/github.com/fzzy/radix/redis/resp
+
+// Either way this code will be refactored soon (20161229/thisisaaronland)
+
 import (
 	"bufio"
 	"bytes"

@@ -13,10 +13,10 @@ import (
 
 func main() {
 
-	var redis_host = flag.String("redis-host", "localhost", "Redis host")
-	var redis_port = flag.Int("redis-port", 6379, "Redis port")
-	var redis_channel = flag.String("redis-channel", "", "Redis channel to publish to")
-	var pubsubd = flag.Bool("pubsubd", false, "...")
+	var redis_host = flag.String("redis-host", "localhost", "The Redis host to connect to.")
+	var redis_port = flag.Int("redis-port", 6379, "The Redis port to connect to.")
+	var redis_channel = flag.String("redis-channel", "", "The Redis channel to publish to.")
+	var pubsubd = flag.Bool("pubsubd", false, "Invoke a local pubsubd server that publish and subscribe clients will connect to. This may be useful when you don't have a local copy of Redis around.")
 
 	flag.Parse()
 
@@ -64,11 +64,7 @@ func main() {
 
 		for scanner.Scan() {
 			msg := scanner.Text()
-			err := redis_client.Publish(*redis_channel, msg)
-
-			if err != nil {
-				log.Println(err)
-			}
+			redis_client.Publish(*redis_channel, msg)
 		}
 
 	} else {
