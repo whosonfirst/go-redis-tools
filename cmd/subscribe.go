@@ -21,7 +21,7 @@ func main() {
 
 	var stdout = flag.Bool("stdout", false, "Output messages to STDOUT. If no other output options are defined this is enabled by default.")
 	var tts_speak = flag.Bool("tts", false, "Output messages to a text-to-speak engine.")
-	var tts_engine = flag.String("tts-engine", "", "A valid go-whosonfirst-tts text-to-speak engine. Valid options are: osx.")
+	var tts_engine = flag.String("tts-engine", "", "A valid go-writer-tts text-to-speak engine. Valid options are: osx.")
 
 	flag.Parse()
 

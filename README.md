@@ -102,7 +102,7 @@ Usage of ./bin/subscribe:
   -tts
     	Output messages to a text-to-speak engine.
   -tts-engine string
-    	A valid go-whosonfirst-tts text-to-speak engine. Valid options are: osx.
+    	A valid go-writer-tts text-to-speak engine. Valid options are: osx.
 ```
 
 Subscribe to a PubSub channel and print the result to `STDOUT`. For example:
@@ -118,7 +118,7 @@ hello world
 If no other output options are defined then all PubSub messages are written to STDOUT.
 
 * _stdout_ - Write output to STDOUT. If you have chosen another output option and still want to write messages to STDOUT you will need to pass this flag.
-* _tts_ - Write output to a valid [go-whosonfirst-tts](https://github.com/whosonfirst/go-writer-tts) text-to-speak engine. Currently there is exactly one of them: `osx`. Not surprisingly if you try to invoke this on something other than a Mac hilarity will ensue.
+* _tts_ - Write output to a valid [go-writer-tts](https://github.com/whosonfirst/go-writer-tts) text-to-speak engine. Currently there is exactly one of them: `osx`. Not surprisingly if you try to invoke this on something other than a Mac hilarity will ensue.
 
 For example:
 
