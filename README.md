@@ -49,7 +49,7 @@ Usage of ./bin/publish:
 Publish a message to PubSub channel. If the message is `-` then the client will read and publish all subsequent input from STDIN. For example:
 
 ```
-$>./bin/publish -redis-channel debug -pubsubd -debug -
+./bin/publish -redis-channel debug -pubsubd -debug -
 *1
 $4
 PING
@@ -96,7 +96,7 @@ Usage of ./bin/subscribe:
 Subscribe to a PubSub channel and print the result to `STDOUT` using the Go [log package](https://golang.org/pkg/log/) (other outputs to follow). For example:
 
 ```
-$> ./bin/subscribe -redis-channel debug
+./bin/subscribe -redis-channel debug
 2016/12/30 09:09:29 hello world 
 ```
 
