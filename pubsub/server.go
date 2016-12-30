@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/whosonfirst/go-redis-tools/resp"
 	"io"
-	"log"
+	_ "log"
 	"net"
 	"strings"
 	"sync"
@@ -27,6 +27,7 @@ type Server struct {
 	subscriptions map[string]Subscriptions
 	conns         map[string]net.Conn
 	mu            *sync.Mutex
+	Debug         bool
 }
 
 func NewServer(host string, port int) (*Server, error) {
@@ -44,6 +45,7 @@ func NewServer(host string, port int) (*Server, error) {
 		channels:      channels,
 		subscriptions: subs,
 		mu:            mu,
+		Debug:         false,
 	}
 
 	return &s, nil
@@ -77,10 +79,15 @@ func (s *Server) ListenAndServe() error {
 func (s *Server) receive(conn net.Conn) {
 
 	client := s.whoami(conn)
-	log.Printf("%s CONNECT", client)
+	// log.Printf("%s CONNECT", client)
 
 	reader := resp.NewRESPReader(conn)
 	writer := resp.NewRESPWriter(conn)
+
+	if s.Debug {
+		reader = resp.NewRESPDebugReader(conn)
+		writer = resp.NewRESPDebugWriter(conn)
+	}
 
 	for {
 		raw, err := reader.ReadObject()
@@ -95,8 +102,6 @@ func (s *Server) receive(conn net.Conn) {
 		}
 
 		str_raw := strings.Trim(string(raw), " ")
-		// log.Printf("RECEIVE\n--\n%s\n--\n", str_raw)
-
 		body := strings.Split(str_raw, "\r\n")
 
 		if len(body) == 0 {
@@ -104,8 +109,6 @@ func (s *Server) receive(conn net.Conn) {
 		}
 
 		cmd := body[2]
-
-		log.Printf("%s %s", client, cmd)
 
 		if cmd == "SUBSCRIBE" {
 

@@ -11,6 +11,7 @@ func main() {
 
 	var host = flag.String("host", "localhost", "The hostname to listen on.")
 	var port = flag.Int("port", 6379, "The port number to listen on.")
+	var debug = flag.Bool("debug", false, "Print all RESP commands to STDOUT.")
 
 	flag.Parse()
 
@@ -19,6 +20,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	server.Debug = *debug
 
 	err = server.ListenAndServe()
 

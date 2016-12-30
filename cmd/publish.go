@@ -17,6 +17,7 @@ func main() {
 	var redis_port = flag.Int("redis-port", 6379, "The Redis port to connect to.")
 	var redis_channel = flag.String("redis-channel", "", "The Redis channel to publish to.")
 	var pubsubd = flag.Bool("pubsubd", false, "Invoke a local pubsubd server that publish and subscribe clients will connect to. This may be useful when you don't have a local copy of Redis around.")
+	var debug = flag.Bool("debug", false, "Print all RESP commands to STDOUT (only really useful if you have invoked the -pubsubd flag).")
 
 	flag.Parse()
 
@@ -29,6 +30,7 @@ func main() {
 	if *pubsubd {
 
 		server, err := pubsub.NewServer(*redis_host, *redis_port)
+		server.Debug = *debug
 
 		if err != nil {
 			log.Fatal(err)

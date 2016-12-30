@@ -19,6 +19,8 @@ All of this package's dependencies are bundled with the code in the `vendor` dir
 ```
 ./bin/pubsubd -h
 Usage of ./bin/pubsubd:
+  -debug
+    	Print all RESP commands to STDOUT.
   -host string
     	The hostname to listen on. (default "localhost")
   -port int
@@ -32,6 +34,8 @@ This will launch a daemon to support most (but not all) of the [Redis Publish/Su
 ```
 ./bin/publish  -h
 Usage of ./bin/publish:
+  -debug
+    	Print all RESP commands to STDOUT (only really useful if you have invoked the -pubsubd flag).
   -pubsubd
     	Invoke a local pubsubd server that publish and subscribe clients will connect to. This may be useful when you don't have a local copy of Redis around.
   -redis-channel string
@@ -42,7 +46,39 @@ Usage of ./bin/publish:
     	The Redis port to connect to. (default 6379)
 ```
 
-Publish a message to PubSub channel. If the message is `-` then the client will read and publish all subsequent input from STDIN.
+Publish a message to PubSub channel. If the message is `-` then the client will read and publish all subsequent input from STDIN. For example:
+
+```
+$>./bin/publish -redis-channel debug -pubsubd -debug -
+*1
+$4
+PING
++PONG
+*1
+$4
+PING
++PONG
+*2
+$9
+SUBSCRIBE
+$5
+debug
+*3
+$9
+subscribe
+$5
+debug
+:1
+hello world
+*3
+$7
+PUBLISH
+$5
+debug
+$11
+hello world
+$-1
+```
 
 ### subscribe
 
@@ -57,7 +93,12 @@ Usage of ./bin/subscribe:
     	The Redis port to connect to. (default 6379)
 ```
 
-Subscribe to a PubSub channel and print the result to `STDOUT` using the Go [log package](https://golang.org/pkg/log/) (other outputs to follow).
+Subscribe to a PubSub channel and print the result to `STDOUT` using the Go [log package](https://golang.org/pkg/log/) (other outputs to follow). For example:
+
+```
+$> ./bin/subscribe -redis-channel debug
+2016/12/30 09:09:29 hello world 
+```
 
 ## See also
 
