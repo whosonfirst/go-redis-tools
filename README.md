@@ -79,6 +79,11 @@ debug
 $11
 hello world
 $-1
+*2
+$11
+UNSUBSCRIBE
+$5
+debug
 ```
 
 ### subscribe
@@ -98,7 +103,8 @@ Subscribe to a PubSub channel and print the result to `STDOUT` (other outputs to
 
 ```
 ./bin/subscribe -redis-channel debug
-hello world 
+hello world
+^C
 ```
 
 ## See also
