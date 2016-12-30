@@ -8,6 +8,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -53,6 +55,21 @@ func main() {
 		log.Fatal(msg)
 	}
 
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigs
+
+		err = pubsub_client.Unsubscribe(*redis_channel)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		os.Exit(0)
+	}()
+
 	for {
 
 		i, _ := pubsub_client.Receive()
@@ -61,14 +78,6 @@ func main() {
 			writer.WriteString(msg.Payload + "\n")
 			writer.Flush()
 		}
-	}
-
-	// please for to add signal handlers here...
-
-	err = pubsub_client.Unsubscribe(*redis_channel)
-
-	if err != nil {
-		log.Fatal(err)
 	}
 
 	os.Exit(0)

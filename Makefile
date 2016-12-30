@@ -36,8 +36,8 @@ fmt:
 	go fmt pubsub/*.go
 	go fmt resp/*.go
 
-pub-debug:
+pub:
 	./bin/publish -redis-channel debug -pubsubd -debug -
 
-sub-debug:
+sub:
 	./bin/subscribe -redis-channel debug
