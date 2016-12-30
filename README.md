@@ -94,11 +94,11 @@ Usage of ./bin/subscribe:
     	The Redis port to connect to. (default 6379)
 ```
 
-Subscribe to a PubSub channel and print the result to `STDOUT` using the Go [log package](https://golang.org/pkg/log/) (other outputs to follow). For example:
+Subscribe to a PubSub channel and print the result to `STDOUT` (other outputs to follow). For example:
 
 ```
 ./bin/subscribe -redis-channel debug
-2016/12/30 09:09:29 hello world 
+hello world 
 ```
 
 ## See also

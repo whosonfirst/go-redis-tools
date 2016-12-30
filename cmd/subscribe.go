@@ -1,7 +1,7 @@
 package main
 
 import (
-       "bufio"
+	"bufio"
 	"flag"
 	"fmt"
 	"gopkg.in/redis.v1"
@@ -27,7 +27,7 @@ func main() {
 	}
 
 	multi := io.MultiWriter(writers...)
-	writer:= bufio.NewWriter(multi)
+	writer := bufio.NewWriter(multi)
 
 	redis_endpoint := fmt.Sprintf("%s:%d", *redis_host, *redis_port)
 
@@ -58,7 +58,8 @@ func main() {
 		i, _ := pubsub_client.Receive()
 
 		if msg, _ := i.(*redis.Message); msg != nil {
-		   	writer.WriteString(msg.Payload)
+			writer.WriteString(msg.Payload + "\n")
+			writer.Flush()
 		}
 	}
 
