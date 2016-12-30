@@ -1,9 +1,11 @@
 package main
 
 import (
+       "bufio"
 	"flag"
 	"fmt"
 	"gopkg.in/redis.v1"
+	"io"
 	"log"
 	"os"
 )
@@ -19,6 +21,13 @@ func main() {
 	if *redis_channel == "" {
 		log.Fatal("Missing channel")
 	}
+
+	writers := []io.Writer{
+		os.Stdout,
+	}
+
+	multi := io.MultiWriter(writers...)
+	writer:= bufio.NewWriter(multi)
 
 	redis_endpoint := fmt.Sprintf("%s:%d", *redis_host, *redis_port)
 
@@ -49,7 +58,7 @@ func main() {
 		i, _ := pubsub_client.Receive()
 
 		if msg, _ := i.(*redis.Message); msg != nil {
-			log.Println(msg.Payload)
+		   	writer.WriteString(msg.Payload)
 		}
 	}
 

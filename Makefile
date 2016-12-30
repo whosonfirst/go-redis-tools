@@ -35,3 +35,9 @@ fmt:
 	go fmt cmd/*.go
 	go fmt pubsub/*.go
 	go fmt resp/*.go
+
+pub-debug:
+	./bin/publish -redis-channel debug -pubsubd -debug -
+
+sub-debug:
+	./bin/subscribe -redis-channel debug

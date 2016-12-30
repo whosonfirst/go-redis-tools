@@ -37,7 +37,8 @@ Usage of ./bin/publish:
   -debug
     	Print all RESP commands to STDOUT (only really useful if you have invoked the -pubsubd flag).
   -pubsubd
-    	Invoke a local pubsubd server that publish and subscribe clients will connect to. This may be useful when you don't have a local copy of Redis around.
+    	Invoke a local pubsubd daemon that publish and subscribe clients (or at least the publish client) will
+	connect to. This may be useful when you don't have a local copy of Redis around.
   -redis-channel string
     	The Redis channel to publish to.
   -redis-host string
