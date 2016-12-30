@@ -17,14 +17,6 @@ import (
 	"strconv"
 )
 
-const (
-	SIMPLE_STRING = '+'
-	BULK_STRING   = '$'
-	INTEGER       = ':'
-	ARRAY         = '*'
-	ERROR         = '-'
-)
-
 var (
 	ErrInvalidSyntax = errors.New("resp: invalid syntax")
 )
@@ -40,17 +32,19 @@ func NewRESPReader(reader io.Reader) *RESPReader {
 }
 
 func (r *RESPReader) ReadObject() ([]byte, error) {
+
 	line, err := r.readLine()
+
 	if err != nil {
 		return nil, err
 	}
 
-	switch line[0] {
-	case SIMPLE_STRING, INTEGER, ERROR:
+	switch string(line[0]) {
+	case RESP_SIMPLE_STRING, RESP_INTEGER, RESP_ERROR:
 		return line, nil
-	case BULK_STRING:
+	case RESP_BULK_STRING:
 		return r.readBulkString(line)
-	case ARRAY:
+	case RESP_ARRAY:
 		return r.readArray(line)
 	default:
 		return nil, ErrInvalidSyntax
