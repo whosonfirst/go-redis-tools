@@ -45,11 +45,45 @@ func NewRESPWriter(writer io.Writer) *RESPWriter {
 	}
 }
 
-func (w *RESPWriter) WriteStringMessage(str string) error {
+func (w *RESPWriter) WriteCountString(count int) error {
 
-	w.Write(stringPrefixSlice)
+	w.Write(arrayPrefixSlice)
+	w.WriteString(strconv.Itoa(count))
+	w.Write(lineEndingSlice)
+
+	return w.Flush()
+}
+
+func (w *RESPWriter) WriteNumberString(count int) error {
+
+	w.Write(numberPrefixSlice)
+	w.WriteString(strconv.Itoa(count))
+	w.Write(lineEndingSlice)
+
+	return w.Flush()
+}
+
+func (w *RESPWriter) WriteBulkStringMessage(str string) error {
+
+	str_len := len(str)
+
+	w.Write(bulkStringPrefixSlice)
+	w.WriteString(strconv.Itoa(str_len))
+	w.Write(lineEndingSlice)
+
 	w.WriteString(str)
 	w.Write(lineEndingSlice)
+
+	return w.Flush()
+}
+
+func (w *RESPWriter) WriteStringMessage(str ...string) error {
+
+	for _, s := range str {
+		w.Write(stringPrefixSlice)
+		w.WriteString(s)
+		w.Write(lineEndingSlice)
+	}
 
 	return w.Flush()
 }
@@ -67,26 +101,10 @@ func (w *RESPWriter) WriteSubscribeMessage(channels []string) error {
 
 	for i, ch := range channels {
 
-		w.Write(arrayPrefixSlice)
-		w.WriteString("3")
-		w.Write(lineEndingSlice)
-
-		w.WriteString("$9")
-		w.Write(lineEndingSlice)
-
-		w.WriteString("subscribe")
-		w.Write(lineEndingSlice)
-
-		w.Write(bulkStringPrefixSlice)
-		w.WriteString(strconv.Itoa(len(ch)))
-		w.Write(lineEndingSlice)
-
-		w.WriteString(ch)
-		w.Write(lineEndingSlice)
-
-		w.Write(numberPrefixSlice)
-		w.WriteString(strconv.Itoa(i + 1))
-		w.Write(lineEndingSlice)
+		w.WriteCountString(3)
+		w.WriteBulkStringMessage("subscribe")
+		w.WriteBulkStringMessage(ch)
+		w.WriteNumberString(i + 1)
 	}
 
 	return w.Flush()
@@ -98,26 +116,10 @@ func (w *RESPWriter) WriteUnsubscribeMessage(channels []string) error {
 
 	for _, ch := range channels {
 
-		w.Write(arrayPrefixSlice)
-		w.WriteString("3")
-		w.Write(lineEndingSlice)
-
-		w.WriteString("$11")
-		w.Write(lineEndingSlice)
-
-		w.WriteString("unsubscribe")
-		w.Write(lineEndingSlice)
-
-		w.Write(bulkStringPrefixSlice)
-		w.WriteString(strconv.Itoa(len(ch)))
-		w.Write(lineEndingSlice)
-
-		w.WriteString(ch)
-		w.Write(lineEndingSlice)
-
-		w.Write(numberPrefixSlice)
-		w.WriteString(strconv.Itoa(i - 1))
-		w.Write(lineEndingSlice)
+		w.WriteCountString(3)
+		w.WriteBulkStringMessage("unsubscribe")
+		w.WriteBulkStringMessage(ch)
+		w.WriteNumberString(i - 1)
 	}
 
 	return w.Flush()
@@ -125,30 +127,10 @@ func (w *RESPWriter) WriteUnsubscribeMessage(channels []string) error {
 
 func (w *RESPWriter) WritePublishMessage(channel string, msg string) error {
 
-	w.Write(arrayPrefixSlice)
-	w.WriteString("3")
-	w.Write(lineEndingSlice)
-
-	w.Write(bulkStringPrefixSlice)
-	w.WriteString("7")
-	w.Write(lineEndingSlice)
-
-	w.WriteString("message")
-	w.Write(lineEndingSlice)
-
-	w.Write(bulkStringPrefixSlice)
-	w.WriteString(strconv.Itoa(len(channel)))
-	w.Write(lineEndingSlice)
-
-	w.WriteString(channel)
-	w.Write(lineEndingSlice)
-
-	w.Write(bulkStringPrefixSlice)
-	w.WriteString(strconv.Itoa(len(msg)))
-	w.Write(lineEndingSlice)
-
-	w.WriteString(msg)
-	w.Write(lineEndingSlice)
+	w.WriteCountString(3)
+	w.WriteBulkStringMessage("message")
+	w.WriteBulkStringMessage(channel)
+	w.WriteBulkStringMessage(msg)
 
 	return w.Flush()
 }
