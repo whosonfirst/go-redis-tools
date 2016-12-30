@@ -97,14 +97,34 @@ Usage of ./bin/subscribe:
     	The Redis host to connect to. (default "localhost")
   -redis-port int
     	The Redis port to connect to. (default 6379)
+  -stdout
+    	Output messages to STDOUT. If no other output options are defined this is enabled by default.
+  -tts
+    	Output messages to a text-to-speak engine.
+  -tts-engine string
+    	A valid go-whosonfirst-tts text-to-speak engine. Valid options are: osx.
 ```
 
-Subscribe to a PubSub channel and print the result to `STDOUT` (other outputs to follow). For example:
+Subscribe to a PubSub channel and print the result to `STDOUT`. For example:
 
 ```
 ./bin/subscribe -redis-channel debug
 hello world
 ^C
+```
+
+#### Output options
+
+If no other output options are defined then all PubSub messages are written to STDOUT.
+
+* _stdout_ - Write output to STDOUT. If you have chosen another output option and still want to write messages to STDOUT you will need to pass this flag.
+* _tts_ - Write output to a valid [go-whosonfirst-tts]() text-to-speak engine. Currently there is exactly one of them: `osx`. Not surprisingly if you try to invoke this on something other than a Mac hilarity will ensue.
+
+For example:
+
+```
+./bin/subscribe -redis-channel debug -tts -tts-engine osx
+[ imagine your computer saying "hello world" here ]
 ```
 
 ## See also

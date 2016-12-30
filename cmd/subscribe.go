@@ -19,9 +19,9 @@ func main() {
 	var redis_port = flag.Int("redis-port", 6379, "The Redis port to connect to.")
 	var redis_channel = flag.String("redis-channel", "", "The Redis channel to publish to.")
 
-	var stdout = flag.Bool("stdout", false, "")
-	var tts_speak = flag.Bool("tts", false, "")
-	var tts_engine = flag.String("tts-engine", "", "")
+	var stdout = flag.Bool("stdout", false, "Output messages to STDOUT. If no other output options are defined this is enabled by default.")
+	var tts_speak = flag.Bool("tts", false, "Output messages to a text-to-speak engine.")
+	var tts_engine = flag.String("tts-engine", "", "A valid go-whosonfirst-tts text-to-speak engine. Valid options are: osx.")
 
 	flag.Parse()
 
