@@ -19,6 +19,7 @@ build:	fmt bin
 
 deps:   rmdeps
 	@GOPATH=$(GOPATH) go get -u "gopkg.in/redis.v1"
+	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-writer-tts"
 
 vendor-deps: deps
 	if test ! -d vendor; then mkdir vendor; fi

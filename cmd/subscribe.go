@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"github.com/whosonfirst/go-writer-tts"
 	"gopkg.in/redis.v1"
 	"io"
 	"log"
@@ -18,14 +19,35 @@ func main() {
 	var redis_port = flag.Int("redis-port", 6379, "The Redis port to connect to.")
 	var redis_channel = flag.String("redis-channel", "", "The Redis channel to publish to.")
 
+	var stdout = flag.Bool("stdout", false, "")
+	var tts_speak = flag.Bool("tts", false, "")
+	var tts_engine = flag.String("tts-engine", "", "")
+
 	flag.Parse()
 
 	if *redis_channel == "" {
 		log.Fatal("Missing channel")
 	}
 
-	writers := []io.Writer{
-		os.Stdout,
+	writers := make([]io.Writer, 0)
+
+	if *stdout {
+		writers = append(writers, os.Stdout)
+	}
+
+	if *tts_speak {
+
+		speaker, err := tts.NewSpeakerForEngine(*tts_engine)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		writers = append(writers, speaker)
+	}
+
+	if len(writers) == 0 {
+		writers = append(writers, os.Stdout)
 	}
 
 	multi := io.MultiWriter(writers...)
