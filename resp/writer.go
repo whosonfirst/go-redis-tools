@@ -13,17 +13,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	_ "os"
+	"os"
 	"strconv"
-)
-
-var (
-	stringPrefixSlice     = []byte{'+'}
-	numberPrefixSlice     = []byte{':'}
-	arrayPrefixSlice      = []byte{'*'}
-	bulkStringPrefixSlice = []byte{'$'}
-	lineEndingSlice       = []byte{'\r', '\n'}
-	errorPrefixSlice      = []byte{'-', 'E', 'R', 'R'}
 )
 
 type RESPWriter struct {
@@ -32,10 +23,16 @@ type RESPWriter struct {
 
 func NewRESPWriter(writer io.Writer) *RESPWriter {
 
+	return &RESPWriter{
+		Writer: bufio.NewWriter(writer),
+	}
+}
+
+func NewRESPDebugWriter(writer io.Writer) *RESPWriter {
+
 	writers := []io.Writer{
 		writer,
-		// this is useful for debugging but otherwise unnecessary (20161229/thisisaaronland)
-		// os.Stdout,
+		os.Stdout,
 	}
 
 	multi := io.MultiWriter(writers...)
@@ -47,18 +44,18 @@ func NewRESPWriter(writer io.Writer) *RESPWriter {
 
 func (w *RESPWriter) WriteCountString(count int) error {
 
-	w.Write(arrayPrefixSlice)
+	w.WriteString(string(RESP_ARRAY))
 	w.WriteString(strconv.Itoa(count))
-	w.Write(lineEndingSlice)
+	w.WriteString(string(RESP_NEWLINE))
 
 	return w.Flush()
 }
 
 func (w *RESPWriter) WriteNumberString(count int) error {
 
-	w.Write(numberPrefixSlice)
+	w.WriteString(string(RESP_INTEGER))
 	w.WriteString(strconv.Itoa(count))
-	w.Write(lineEndingSlice)
+	w.WriteString(string(RESP_NEWLINE))
 
 	return w.Flush()
 }
@@ -67,12 +64,12 @@ func (w *RESPWriter) WriteBulkStringMessage(str string) error {
 
 	str_len := len(str)
 
-	w.Write(bulkStringPrefixSlice)
+	w.WriteString(string(RESP_BULK_STRING))
 	w.WriteString(strconv.Itoa(str_len))
-	w.Write(lineEndingSlice)
+	w.WriteString(string(RESP_NEWLINE))
 
 	w.WriteString(str)
-	w.Write(lineEndingSlice)
+	w.WriteString(string(RESP_NEWLINE))
 
 	return w.Flush()
 }
@@ -80,9 +77,9 @@ func (w *RESPWriter) WriteBulkStringMessage(str string) error {
 func (w *RESPWriter) WriteStringMessage(str ...string) error {
 
 	for _, s := range str {
-		w.Write(stringPrefixSlice)
+		w.WriteString(string(RESP_SIMPLE_STRING))
 		w.WriteString(s)
-		w.Write(lineEndingSlice)
+		w.WriteString(string(RESP_NEWLINE))
 	}
 
 	return w.Flush()
@@ -90,9 +87,9 @@ func (w *RESPWriter) WriteStringMessage(str ...string) error {
 
 func (w *RESPWriter) WriteNullMessage() error {
 
-	w.Write(bulkStringPrefixSlice)
+	w.WriteString(string(RESP_BULK_STRING))
 	w.WriteString("-1")
-	w.Write(lineEndingSlice)
+	w.WriteString(string(RESP_NEWLINE))
 
 	return w.Flush()
 }
@@ -137,9 +134,9 @@ func (w *RESPWriter) WritePublishMessage(channel string, msg string) error {
 
 func (w *RESPWriter) WriteErrorMessage(err error) error {
 
-	w.Write(errorPrefixSlice)
+	w.WriteString(string(RESP_SIMPLE_STRING))
 	w.WriteString(fmt.Sprintf("%s", err))
-	w.Write(lineEndingSlice)
+	w.WriteString(string(RESP_NEWLINE))
 
 	return w.Flush()
 }
