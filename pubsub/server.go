@@ -21,6 +21,7 @@ type Channels map[string]bool
 type Subscriptions map[string]bool
 
 type Server struct {
+	endpoint      string
 	host          string
 	port          int
 	channels      map[string]Channels
@@ -36,9 +37,12 @@ func NewServer(host string, port int) (*Server, error) {
 	channels := make(map[string]Channels)
 	subs := make(map[string]Subscriptions)
 
+	endpoint := fmt.Sprintf("%s:%d", host, port)
+
 	mu := new(sync.Mutex)
 
 	s := Server{
+		endpoint:      endpoint,
 		host:          host,
 		port:          port,
 		conns:         conns,
@@ -53,14 +57,34 @@ func NewServer(host string, port int) (*Server, error) {
 
 func (s *Server) ListenAndServe() error {
 
-	address := fmt.Sprintf("%s:%d", s.host, s.port)
-	daemon, err := net.Listen("tcp", address)
+	daemon, err := net.Listen("tcp", s.endpoint)
 
 	if err != nil {
 		return err
 	}
 
 	defer daemon.Close()
+
+	return s.listen(daemon)
+}
+
+func (s *Server) ListenAndServeWithReadySignal(signal chan bool) error {
+
+	daemon, err := net.Listen("tcp", s.endpoint)
+
+	if err != nil {
+		signal <- false
+		return err
+	}
+
+	defer daemon.Close()
+
+	signal <- true
+
+	return s.listen(daemon)
+}
+
+func (s *Server) listen(daemon net.Listener) error {
 
 	for {
 
