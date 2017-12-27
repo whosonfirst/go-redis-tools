@@ -6,10 +6,10 @@ prep:
 
 self:   prep rmdeps
 	if test ! -d src; then mkdir src; fi
-	if test ! -d src/github.com/whosonfirst/go-redis-tools/pubsub; then mkdir -p src/github.com/whosonfirst/go-redis-tools/pubsub; fi
-	if test ! -d src/github.com/whosonfirst/go-redis-tools/resp; then mkdir -p src/github.com/whosonfirst/go-redis-tools/resp; fi
-	cp pubsub/*.go src/github.com/whosonfirst/go-redis-tools/pubsub/
-	cp resp/*.go src/github.com/whosonfirst/go-redis-tools/resp/
+	if test ! -d src/github.com/whosonfirst/go-whosonfirst-redis/pubsub; then mkdir -p src/github.com/whosonfirst/go-whosonfirst-redis/pubsub; fi
+	if test ! -d src/github.com/whosonfirst/go-whosonfirst-redis/resp; then mkdir -p src/github.com/whosonfirst/go-whosonfirst-redis/resp; fi
+	cp pubsub/*.go src/github.com/whosonfirst/go-whosonfirst-redis/pubsub/
+	cp resp/*.go src/github.com/whosonfirst/go-whosonfirst-redis/resp/
 	cp -r vendor/src/* src/
 
 rmdeps:
@@ -19,7 +19,6 @@ build:	fmt bin
 
 deps:   rmdeps
 	@GOPATH=$(GOPATH) go get -u "gopkg.in/redis.v1"
-	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-writer-tts"
 
 vendor-deps: deps
 	if test ! -d vendor; then mkdir vendor; fi

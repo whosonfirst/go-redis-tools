@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/whosonfirst/go-redis-tools/pubsub"
+	"github.com/whosonfirst/go-whosonfirst-redis/pubsub"
 	"gopkg.in/redis.v1"
 	"log"
 	"os"

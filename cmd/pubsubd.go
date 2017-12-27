@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/whosonfirst/go-redis-tools/pubsub"
+	"github.com/whosonfirst/go-whosonfirst-redis/pubsub"
 	"log"
 	"os"
 )

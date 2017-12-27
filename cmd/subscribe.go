@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/whosonfirst/go-writer-tts"
 	"gopkg.in/redis.v1"
 	"io"
 	"log"
@@ -20,8 +19,6 @@ func main() {
 	var redis_channel = flag.String("redis-channel", "", "The Redis channel to publish to.")
 
 	var stdout = flag.Bool("stdout", false, "Output messages to STDOUT. If no other output options are defined this is enabled by default.")
-	var tts_speak = flag.Bool("tts", false, "Output messages to a text-to-speak engine.")
-	var tts_engine = flag.String("tts-engine", "", "A valid go-writer-tts text-to-speak engine. Valid options are: osx.")
 
 	flag.Parse()
 
@@ -33,17 +30,6 @@ func main() {
 
 	if *stdout {
 		writers = append(writers, os.Stdout)
-	}
-
-	if *tts_speak {
-
-		speaker, err := tts.NewSpeakerForEngine(*tts_engine)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		writers = append(writers, speaker)
 	}
 
 	if len(writers) == 0 {

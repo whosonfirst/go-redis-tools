@@ -6,7 +6,7 @@ package pubsub
 import (
 	"errors"
 	"fmt"
-	"github.com/whosonfirst/go-redis-tools/resp"
+	"github.com/whosonfirst/go-whosonfirst-redis/resp"
 	"io"
 	_ "log"
 	"net"
