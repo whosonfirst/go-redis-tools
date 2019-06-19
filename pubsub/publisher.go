@@ -2,7 +2,7 @@ package pubsub
 
 import (
 	"fmt"
-	"gopkg.in/redis.v1"
+	"github.com/go-redis/redis"
 )
 
 type Publisher struct {
@@ -13,7 +13,7 @@ func NewPublisher(host string, port int) (*Publisher, error) {
 
 	redis_endpoint := fmt.Sprintf("%s:%d", host, port)
 
-	redis_client := redis.NewTCPClient(&redis.Options{
+	redis_client := redis.NewClient(&redis.Options{
 		Addr: redis_endpoint,
 	})
 
